@@ -1,0 +1,40 @@
+iimport RPi.GPIO as GPIO
+import time
+import math
+
+# Set the GPIO mode and pin number
+GPIO.setmode(GPIO.BCM)
+servo_pin = 23
+
+# Set up the GPIO pin for output
+GPIO.setup(servo_pin, GPIO.OUT)
+
+# Create a PWM object with a frequency of 50 Hz
+pwm = GPIO.PWM(servo_pin, 50)
+
+# Start the PWM signal with a duty cycle of 2.5%
+pwm.start(2.5)
+
+# Define a function to convert degrees to duty cycle
+def angle_to_duty_cycle(angle):
+    return angle / 18.0 + 2.5
+
+# Move the servo to the desired angle
+def move_servo(angle):
+    # Round the angle up to the nearest multiple of 10
+    angle = int(math.ceil(angle / 10.0)) * 10
+    
+    # Convert the angle to a duty cycle and set the PWM
+    duty_cycle = angle_to_duty_cycle(angle)
+    pwm.ChangeDutyCycle(duty_cycle)
+
+# Move the servo to 36 different positions around a circle
+for i in range(36):
+    angle = i * 10
+    move_servo(angle)
+    time.sleep(0.5)
+
+# Clean up the GPIO pins
+pwm.stop()
+GPIO.cleanup()
+GPIO.cleanup()
