@@ -21,8 +21,8 @@ def angle_to_duty_cycle(angle):
 
 # Move the servo to the desired angle
 def move_servo(angle):
-    # Round the angle up to the nearest multiple of 10
-    angle = int(math.ceil(angle / 10.0)) * 10
+    # Round the angle to the nearest 5 degrees
+    angle = round(angle / 5) * 5
     
     # Convert the angle to a duty cycle and set the PWM
     duty_cycle = angle_to_duty_cycle(angle)
