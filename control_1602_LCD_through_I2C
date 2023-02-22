@@ -1,0 +1,62 @@
+import smbus2
+import time
+
+# I2C bus number (1 for Raspberry Pi Model B+)
+bus = smbus2.SMBus(1)
+
+# LCD address (0x27 for most 1602 LCD screens)
+lcd_addr = 0x27
+
+# LCD command bytes
+lcd_cmd = {
+    "clear": 0x01, # Clear screen
+    "home": 0x02, # Return cursor to home position
+    "entry_mode": 0x06, # Set entry mode (increment cursor, no shift)
+    "display_on": 0x0C, # Turn display on, cursor off, blink off
+    "function_set": 0x38, # Set 8-bit mode, 2-line display, 5x8 font
+    "line1": 0x80, # Set cursor to line 1 position 0
+    "line2": 0xC0, # Set cursor to line 2 position 0
+}
+
+# Function to write a byte to the LCD
+def lcd_write_byte(byte, mode):
+    # Send high 4 bits
+    bus.write_byte(lcd_addr, (byte & 0xF0) | mode | 0x04)
+    time.sleep(0.0001)
+
+    # Send low 4 bits
+    bus.write_byte(lcd_addr, ((byte & 0x0F) << 4) | mode | 0x04)
+    time.sleep(0.0001)
+
+# Function to send a command to the LCD
+def lcd_send_cmd(cmd):
+    lcd_write_byte(cmd, 0x00)
+
+# Function to send a character to the LCD
+def lcd_send_char(char):
+    lcd_write_byte(ord(char), 0x01)
+
+# Initialize LCD
+lcd_send_cmd(lcd_cmd["function_set"])
+lcd_send_cmd(lcd_cmd["display_on"])
+lcd_send_cmd(lcd_cmd["entry_mode"])
+lcd_send_cmd(lcd_cmd["clear"])
+
+# Loop and print distance readings
+while True:
+    # TODO: Replace this with your actual distance sensor code
+    distance_cm = 50
+
+    # Format distance reading as a string with two decimal places
+    distance_str = "{:.2f} cm".format(distance_cm)
+
+    # Clear LCD and set cursor to line 1
+    lcd_send_cmd(lcd_cmd["clear"])
+    lcd_send_cmd(lcd_cmd["line1"])
+
+    # Print distance reading on line 1
+    for char in distance_str:
+        lcd_send_char(char)
+
+    # Wait for a short time before taking the next measurement
+    time.sleep(0.5)
