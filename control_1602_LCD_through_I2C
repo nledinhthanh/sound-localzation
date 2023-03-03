@@ -1,62 +1,85 @@
-import smbus2
-import time
+import RPi.GPIO as GPIO
+from Adafruit_PureIO.smbus import SMBus
 
-# I2C bus number (1 for Raspberry Pi Model B+)
-bus = smbus2.SMBus(1)
+# PCF8574 pin mapping to LCD
+RS = 0
+RW = 1
+EN = 2
+LED = 3
+D4 = 4
+D5 = 5
+D6 = 6
+D7 = 7
 
-# LCD address (0x27 for most 1602 LCD screens)
-lcd_addr = 0x27
+# I2C address of PCF8574 IO expander
+PCF8574_ADDR = 0x27
 
-# LCD command bytes
-lcd_cmd = {
-    "clear": 0x01, # Clear screen
-    "home": 0x02, # Return cursor to home position
-    "entry_mode": 0x06, # Set entry mode (increment cursor, no shift)
-    "display_on": 0x0C, # Turn display on, cursor off, blink off
-    "function_set": 0x38, # Set 8-bit mode, 2-line display, 5x8 font
-    "line1": 0x80, # Set cursor to line 1 position 0
-    "line2": 0xC0, # Set cursor to line 2 position 0
-}
+def detect_i2c(addr):
+    try:
+        with SMBus(1) as bus:
+            bus.read_byte(addr)
+            print("Found device at address 0x{:02X}".format(addr))
+            return True
+    except:
+        print("No device found at address 0x{:02X}".format(addr))
+        return False
 
-# Function to write a byte to the LCD
-def lcd_write_byte(byte, mode):
-    # Send high 4 bits
-    bus.write_byte(lcd_addr, (byte & 0xF0) | mode | 0x04)
-    time.sleep(0.0001)
+def lcd_init():
+    # Initialize PCF8574 IO expander and set pins to output mode
+    with SMBus(1) as bus:
+        bus.write_byte(PCF8574_ADDR, 0x00)
+    # Initialize LCD display
+    lcd = GPIO.PWM(LED, 50)
+    lcd.start(0)
+    lcd_set_cmd(0x33) # Initialize
+    lcd_set_cmd(0x32) # Set to 4-bit mode
+    lcd_set_cmd(0x06) # Set entry mode
+    lcd_set_cmd(0x0C) # Turn on display
+    lcd_set_cmd(0x28) # Set function mode
+    lcd_set_cmd(0x01) # Clear display
 
-    # Send low 4 bits
-    bus.write_byte(lcd_addr, ((byte & 0x0F) << 4) | mode | 0x04)
-    time.sleep(0.0001)
+def lcd_set_cmd(cmd):
+    # Send a command to the LCD display
+    GPIO.output(RS, 0)
+    lcd_write_4bit(cmd >> 4)
+    lcd_write_4bit(cmd & 0x0F)
 
-# Function to send a command to the LCD
-def lcd_send_cmd(cmd):
-    lcd_write_byte(cmd, 0x00)
+def lcd_set_text(text):
+    # Send a string to the LCD display
+    GPIO.output(RS, 1)
+    for c in text:
+        lcd_write_4bit(ord(c) >> 4)
+        lcd_write_4bit(ord(c) & 0x0F)
 
-# Function to send a character to the LCD
-def lcd_send_char(char):
-    lcd_write_byte(ord(char), 0x01)
+def lcd_write_4bit(value):
+    # Write a 4-bit value to the LCD display
+    with SMBus(1) as bus:
+        bus.write_byte(PCF8574_ADDR, value | 0x08)
+        GPIO.output(EN, 1)
+        GPIO.output(EN, 0)
 
-# Initialize LCD
-lcd_send_cmd(lcd_cmd["function_set"])
-lcd_send_cmd(lcd_cmd["display_on"])
-lcd_send_cmd(lcd_cmd["entry_mode"])
-lcd_send_cmd(lcd_cmd["clear"])
+def print_distance(distance):
+    # Print the distance on the LCD display
+    lcd_set_cmd(0x80) # Set cursor to first line
+    lcd_set_text("Distance is {:.1f}m".format(distance))
 
-# Loop and print distance readings
-while True:
-    # TODO: Replace this with your actual distance sensor code
-    distance_cm = 50
-
-    # Format distance reading as a string with two decimal places
-    distance_str = "{:.2f} cm".format(distance_cm)
-
-    # Clear LCD and set cursor to line 1
-    lcd_send_cmd(lcd_cmd["clear"])
-    lcd_send_cmd(lcd_cmd["line1"])
-
-    # Print distance reading on line 1
-    for char in distance_str:
-        lcd_send_char(char)
-
-    # Wait for a short time before taking the next measurement
-    time.sleep(0.5)
+def main():
+    # Set up GPIO pins
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup([RS, RW, EN, LED, D4, D5, D6, D7], GPIO.OUT)
+    GPIO.output(RW, 0)
+    # Detect I2C devices
+    if detect_i2c(0x27):
+        PCF8574_ADDR = 0x27
+    elif detect_i2c(0x3F):
+        PCF8574_ADDR = 0x3F
+    else:
+        print("No I2C device found")
+        return
+    # Initialize LCD display
+    lcd_init()
+    # Main loop
+    while True:
+        # Read distance sensor and print distance
+        distance = 0.8 # Replace with the actual distance value read from the sensor
+        print_distance(distance)
