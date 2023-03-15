@@ -5,7 +5,7 @@
 #
 import sys
 import time
-from daqhats import hat_list, HatIDs, mcc118
+from daqhats import hat_list, HatIDs, mcc118, HatError
 
 # Configuration
 CHANNEL = 5
@@ -32,24 +32,28 @@ with open(output_file, "w") as file:
             print("Board {}: MCC 118".format(entry.address))
             board = mcc118(entry.address)
 
-            # Configure and start the scan
-            board.a_in_scan_start(TOTAL_SAMPLES, SAMPLES_PER_SECOND, CHANNEL, 0)
+            try:
+                # Configure and start the scan
+                board.a_in_scan_start(TOTAL_SAMPLES, SAMPLES_PER_SECOND, CHANNEL, 0)
 
-            # Read and save data
-            samples_read = 0
-            start_time = time.time()
-            while samples_read < TOTAL_SAMPLES:
-                # Read available samples (with a timeout of 1 second)
-                read_request = (min(TOTAL_SAMPLES - samples_read, BUFFER_SIZE),)
-                samples, read_count = board.a_in_scan_read(read_request, 1)
-                samples_read += read_count
+                # Read and save data
+                samples_read = 0
+                start_time = time.time()
+                while samples_read < TOTAL_SAMPLES:
+                    # Read available samples (with a timeout of 1 second)
+                    read_request = (min(TOTAL_SAMPLES - samples_read, BUFFER_SIZE),)
+                    samples, read_count = board.a_in_scan_read(read_request, 1)
+                    samples_read += read_count
 
-                # Save the samples to the output file
-                for value in samples:
-                    file.write("{0:.3f}\n".format(value))
+                    # Save the samples to the output file
+                    for value in samples:
+                        file.write("{0:.3f}\n".format(value))
 
-            # Stop the scan
-            board.a_in_scan_stop()
+                # Stop the scan
+                board.a_in_scan_stop()
 
-            # Reset the board
-            board.a_in_scan_cleanup()
+                # Reset the board
+                board.a_in_scan_cleanup()
+                
+            except HatError as e:
+                print("Error: {}".format(e))
