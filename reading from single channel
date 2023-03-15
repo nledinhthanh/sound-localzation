@@ -33,7 +33,7 @@ with open(output_file, "w") as file:
             board = mcc118(entry.address)
 
             # Configure and start the scan
-            board.a_in_scan_start(TOTAL_SAMPLES, SAMPLES_PER_SECOND, CHANNEL)
+            board.a_in_scan_start(TOTAL_SAMPLES, SAMPLES_PER_SECOND, CHANNEL, 0)
 
             # Read and save data
             samples_read = 0
