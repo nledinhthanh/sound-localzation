@@ -5,7 +5,7 @@
 #
 import sys
 import time
-from daqhats import hat_list, HatIDs, mcc118, OptionFlags, ScanOptions
+from daqhats import hat_list, HatIDs, mcc118, OptionFlags
 
 # Configuration
 CHANNEL = 5
@@ -32,13 +32,14 @@ with open(output_file, "w") as file:
             board = mcc118(entry.address)
 
             # Configure and start the scan
-            board.a_in_scan_start(CHANNEL, CHANNEL, TOTAL_SAMPLES, SAMPLES_PER_SECOND, ScanOptions.CONTINUOUS, 0)
+            board.a_in_scan_start(TOTAL_SAMPLES, SAMPLES_PER_SECOND, CHANNEL, OptionFlags.CONTINUOUS)
 
             # Read and save data
             start_time = time.time()
             while time.time() - start_time < DURATION:
                 # Read available samples (with a timeout of 1 second)
-                samples, _ = board.a_in_scan_read(TOTAL_SAMPLES, 1)
+                read_request = (TOTAL_SAMPLES,)
+                samples, samples_read = board.a_in_scan_read(read_request, 1)
 
                 # Save the samples to the output file
                 for value in samples:
