@@ -5,12 +5,13 @@
 #
 import sys
 import time
-from daqhats import hat_list, HatIDs, mcc118, OptionFlags
+from daqhats import hat_list, HatIDs, mcc118
 
 # Configuration
 CHANNEL = 5
 SAMPLES_PER_SECOND = 100000
 DURATION = 15
+BUFFER_SIZE = 1000
 
 # Calculate the total number of samples
 TOTAL_SAMPLES = SAMPLES_PER_SECOND * DURATION
@@ -32,14 +33,16 @@ with open(output_file, "w") as file:
             board = mcc118(entry.address)
 
             # Configure and start the scan
-            board.a_in_scan_start(TOTAL_SAMPLES, SAMPLES_PER_SECOND, CHANNEL, OptionFlags.CONTINUOUS)
+            board.a_in_scan_start(TOTAL_SAMPLES, SAMPLES_PER_SECOND, CHANNEL)
 
             # Read and save data
+            samples_read = 0
             start_time = time.time()
-            while time.time() - start_time < DURATION:
+            while samples_read < TOTAL_SAMPLES:
                 # Read available samples (with a timeout of 1 second)
-                read_request = (TOTAL_SAMPLES,)
-                samples, samples_read = board.a_in_scan_read(read_request, 1)
+                read_request = (min(TOTAL_SAMPLES - samples_read, BUFFER_SIZE),)
+                samples, read_count = board.a_in_scan_read(read_request, 1)
+                samples_read += read_count
 
                 # Save the samples to the output file
                 for value in samples:
