@@ -33,10 +33,15 @@ for i in range(board.info().NUM_AI_CHANNELS):
 x_values = []
 y_values = [[] for i in range(board.info().NUM_AI_CHANNELS)]
 start_time = time.monotonic()
-for i in range(num_samples):
-    x_values.append(time.monotonic() - start_time)
+while True:
+    # Read the latest data from each channel
     for channel in range(board.info().NUM_AI_CHANNELS):
         y_values[channel].append(board.a_in_read(channel))
+    # Update the time values for the x-axis
+    x_values = [time.monotonic() - start_time - duration for i in range(num_samples)]
+    x_values = x_values[-num_samples:]  # Keep only the last num_samples values
+    # Plot the data for each channel
+    for channel in range(board.info().NUM_AI_CHANNELS):
         ax[channel].clear()
         ax[channel].plot(x_values, y_values[channel], label=f"Ch {channel}")
         ax[channel].legend()
