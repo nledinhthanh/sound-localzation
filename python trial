@@ -1,0 +1,38 @@
+import smbus
+from datetime import datetime
+from time import sleep
+
+# Define I2C bus and device address for the PCF8574T chip
+bus = smbus.SMBus(1)
+device_address = 0x27
+
+# Define function to send a command to the LCD
+def lcd_command(cmd):
+    bus.write_byte(device_address, cmd)
+    sleep(0.0001)
+
+# Define function to send a character to the LCD
+def lcd_data(data):
+    bus.write_byte_data(device_address, 0x40, data)
+    sleep(0.0001)
+
+# Initialize the LCD
+lcd_command(0x03)
+lcd_command(0x03)
+lcd_command(0x03)
+lcd_command(0x02)
+lcd_command(0x20 | 0x08 | 0x04)
+lcd_command(0x08 | 0x04)
+lcd_command(0x01)
+sleep(0.001)
+
+# Continuously print the current time to the LCD
+while True:
+    now = datetime.now()
+    lcd_command(0x80)
+    lcd_data(ord(now.strftime("%H")))
+    lcd_data(ord(":"))
+    lcd_data(ord(now.strftime("%M")))
+    lcd_data(ord(":"))
+    lcd_data(ord(now.strftime("%S")))
+    sleep(1)
