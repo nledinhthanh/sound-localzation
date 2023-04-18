@@ -62,3 +62,4 @@ with open(filename, 'w') as f:
                         data_string += "NA,"
                 f.write(data_string[:-1] + "\n")
 
+                # The channels should be read all at one
