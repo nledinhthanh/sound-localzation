@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+#
+# MCC 118 example program
+# Read analog input values from channels 4, 5, and 6
+# Print the data to the console and save to a file
+# until a keyboard interrupt occurs
+#
+import sys
+import time
+from daqhats import hat_list, HatIDs, mcc118
+
+def main():
+    # Open a file for writing
+    filename = "/home/drigenser/Desktop/channel_data.txt"
+
+    # Get hat list of MCC daqhat boards
+    board_list = hat_list(filter_by_id=HatIDs.ANY)
+    if not board_list:
+        print("No boards found")
+        sys.exit()
+
+    # Read data from channels 4, 5, and 6 simultaneously
+    for entry in board_list:
+        if entry.id == HatIDs.MCC_118:
+            print("Board {}: MCC 118".format(entry.address))
+            board = mcc118(entry.address)
+
+            buffer = []  # Create a buffer to store the data before writing to the file
+            buffer_limit = 100  # The number of lines to store in the buffer before writing to the file
+
+            try:
+                start_time = time.monotonic()
+                while True:
+                    data = []
+                    for channel in [4, 5, 6]:
+                        value = board.a_in_read(channel)
+                        data.append(value)
+
+                    timestamp = time.monotonic() - start_time
+                    console_output = "Timestamp: {:.6f}, Channel 4: {:.3f} V, Channel 5: {:.3f} V, Channel 6: {:.3f} V".format(timestamp, *data)
+                    print(console_output)
+
+                    file_output = "{:.6f},{:.3f},{:.3f},{:.3f}\n".format(timestamp, *data)
+                    buffer.append(file_output)  # Append the output to the buffer
+
+                    # If the buffer is full, write its content to the file and clear it
+                    if len(buffer) >= buffer_limit:
+                        with open(filename, 'a') as f:
+                            f.writelines(buffer)
+                        buffer.clear()
+
+
+            except KeyboardInterrupt:
+                print("Stopped by user.")
+                # Write the remaining data in the buffer to the file
+                with open(filename, 'a') as f:
+                    f.writelines(buffer)
+
+if __name__ == "__main__":
+    main()
+
