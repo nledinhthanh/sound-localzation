@@ -1,0 +1,38 @@
+import RPi.GPIO as GPIO
+import time
+import MCC118_functions # import the module with functions for the MCC118
+import lcd_functions # import the module with functions for the LCD display
+import servo_functions # import the module with functions for the servo motor
+
+# set up GPIO for button
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# initialize MCC118 and servo
+mcc = MCC118_functions.initialize_MCC()
+servo = servo_functions.initialize_servo()
+
+# loop to run the program
+while True:
+    # check if button is pressed
+    if GPIO.input(18) == False:
+        # reset the program
+        time.sleep(0.5)
+        continue
+    
+    # detect clap using TDOA
+    # if clap detected, update LCD and turn servo motor to the angle using trilateration method
+    if detect_clap_tdoa():
+        angle = calculate_angle_trilateration()
+        lcd_functions.update_lcd(angle)
+        servo_functions.turn_to_angle(servo, angle)
+    
+    # if clap not detected, check again using GCC
+    elif detect_clap_gcc():
+        angle = calculate_angle_trilateration()
+        lcd_functions.update_lcd(angle)
+        servo_functions.turn_to_angle(servo, angle)
+    
+    # if still no clap, wait for 0.1 seconds and check again
+    else:
+        time.sleep(0.1)
